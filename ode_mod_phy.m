@@ -2,7 +2,7 @@
 % This is the system of differential equations representing phytoplankton
 % processes in Luo et al. (2010)
 
-function [dydtt, fluxPHYno3, fluxPHYnh4, fluxPHYpo4] = ode_mod_phy(y)
+function [dydtt] = ode_mod_phy(y)
 %-----------------------------------------------------------------------
 %      Phytoplankton Processes
 %-----------------------------------------------------------------------

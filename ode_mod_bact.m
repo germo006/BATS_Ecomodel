@@ -2,7 +2,7 @@
 % This is the system of differential equations representing bacterial
 % processes in Luo et al. (2010)
 
-function [dydtt, fluxBAno3, fluxBAnh4, fluxBApo4] = ode_mod_bact(y)
+function [dydtt] = ode_mod_bact(y)
 
 %-----------------------------------------------------------------------
 %      Bacterial Processes
@@ -94,7 +94,7 @@ dydtt.iBAn = (growBAn - refrBAn - excrBAn - remiBAn - grazBAn - mortBAn)/SecPerD
 dydtt.iBAp = (growBAp - refrBAp - excrBAp - remiBAp - grazBAp - mortBAp)/SecPerDay;
 
 %8. Flux of inorganic nutrients through bacteria
-fluxBAnh4 = growBAnh4 - remiBAn;
-fluxBAno3 = growBAno3;
-fluxBApo4 = growBApo4 - remiBAp;
+dydtt.fluxBAnh4 = growBAnh4 - remiBAn;
+dydtt.fluxBAno3 = growBAno3;
+dydtt.fluxBApo4 = growBApo4 - remiBAp;
 end
