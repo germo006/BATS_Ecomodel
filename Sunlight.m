@@ -25,4 +25,3 @@ Im = 10^3;      % Max irradiance (amplitude).
 I = Im*(-cos(time*pi*2));
 I(I<=0) = 0;
 end
-
