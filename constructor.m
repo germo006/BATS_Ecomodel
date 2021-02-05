@@ -152,18 +152,18 @@ ps.q_MZ_n = 0.2;
 ps.q_MZ_p = 0.008;
 
 
-y.T = 20; % in deg C
-y.PAR = 0; % in W m^-2
+%y.T = 20; % in deg C
+%y.PAR = 0; % in W m^-2
 
 y.iPHYc = 0.876 * 1.056; %*
 y.iPHYn = 0.477; %*
 y.iPHYp = 0.00863 * 1.1838; %*
-y.iPHYchl = 0.1; % Guess in mg/m3 based on even split
+y.iPHYchl = 0.2; % Guess in mg/m3 based on even split
 
 y.iTRc = 0.312 * 0.269; %**
 y.iTRn = 0.0494 * 0.309;%**
 y.iTRp = 0.00236 * 0.1725;%**
-y.iTRchl = 0.1;
+y.iTRchl = 0.051;
 
 y.iUNc = 0.312 * 0.626;%**
 y.iUNn = 0.0494 * 0.716;%**
@@ -194,6 +194,12 @@ y.iLDOMc = 0.876 * 0.223; %*
 y.iLDOMn = 0.122 * 0.220; %*
 y.iLDOMp = 0.00863 * 0.3451; %*
 
-y.iSDOMc = 25.8; %*
+y.iSDOMc = 9; %*
 y.iSDOMn = 2.90; %*
 y.iSDOMp = 0; %*
+
+% y.fluxBApo4 = 0; %
+% y.fluxBAno3 = 0; %
+% y.fluxBAnh4 = 0; %
+% y.PrPr = 0; %
+% y.BPr = 0; %

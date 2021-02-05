@@ -13,7 +13,8 @@ function [dydtt] = ode_mod_ecosys(y, ps, po, ts)
 
 tfun = @(T) exp(-po.AE*((1/(T+273.15))-(1/(25+273.15))));
 pfun = @(t) max(0, -10*cos(2*pi*t));
-y.PAR = pfun(ts);
+PAR = pfun(ts);
+T = 21;
 
 
 %%-----------------------------------------------------------------------
@@ -27,22 +28,22 @@ Nfunc_phy_p = ((y.iPHYp/y.iPHYc)-ps.q_PHY_p)/(ps.q_PHY_p_rdf - ps.q_PHY_p);
 temp = max([min([Nfunc_phy_n, Nfunc_phy_p, 1]),0]); % Force elemental limits
 % on rate to between 0 and 100%
 
-Pmax_phy = po.mu_PHY * tfun(y.T) * temp; % Max specific growth rate.
+Pmax_phy = po.mu_PHY * tfun(T) * temp; % Max specific growth rate.
 
 % Light limitation and specific gross PP (as carbon)
 growPHYc = y.iPHYc * Pmax_phy *...
-    (1 - exp(-po.alpha_PHY_chl * (y.iPHYchl/y.iPHYc) * y.PAR / Pmax_phy)) *...
-    exp(-po.beta_PHY * y.PAR);
+    (1 - exp(-po.alpha_PHY_chl * (y.iPHYchl/y.iPHYc) * PAR / Pmax_phy)) *...
+    exp(-po.beta_PHY * PAR);
 
 % Nitrogen assimilation
 
 Vmax_phy_n = (ps.q_PHY_n_max - (y.iPHYn/y.iPHYc))/(ps.q_PHY_n_max - ps.q_PHY_n_rdf);
 temp = max([min([Vmax_phy_n,1]),0]); % Yet again forcing this.
 
-growPHYnh4 = y.iPHYc * po.vref_PHY_n * tfun(y.T) * temp * ...
+growPHYnh4 = y.iPHYc * po.vref_PHY_n * tfun(T) * temp * ...
     y.iNH4 / (y.iNH4 + po.k_PHY_nh4 + (y.iNO3*po.k_PHY_nh4/po.k_PHY_no3));
 
-growPHYno3 = y.iPHYc * po.vref_PHY_n * tfun(y.T) * temp * ...
+growPHYno3 = y.iPHYc * po.vref_PHY_n * tfun(T) * temp * ...
     y.iNO3 / (y.iNO3 + po.k_PHY_no3 + (y.iNH4*po.k_PHY_no3/po.k_PHY_nh4));
 
 growPHYn = growPHYnh4 + growPHYno3; % Total growth on nitrogen limit.
@@ -54,7 +55,7 @@ temp = max([min([Vmax_phy_p,1]),0]); % Yet again forcing this.
 
 % Assuming inorganic P is the limiter and supply, here's the max growth.
 
-growPHYpo4 = y.iPHYc * po.vref_PHY_p * tfun(y.T) * temp * ...
+growPHYpo4 = y.iPHYc * po.vref_PHY_p * tfun(T) * temp * ...
     y.iPO4 / (y.iPO4 + po.k_PHY_po4);
 
 % The use of nitrate requires reduction, which requires energy. Here we
@@ -65,7 +66,10 @@ respPHY = po.zeta_no3 * growPHYno3;
 % Chlorophyll Production
 
 growPHYchl = po.theta * growPHYn * growPHYc / ...
-    (po.alpha_PHY_chl * y.iPHYchl * y.PAR * exp(-po.beta_PHY * y.PAR));
+    (po.alpha_PHY_chl * y.iPHYchl * PAR * exp(-po.beta_PHY * PAR));
+if isnan(growPHYchl)
+    growPHYchl = 0;
+end
 
 % DOM excretion!
 
@@ -116,7 +120,7 @@ POM_PHY_chl = (y.iPHYchl/y.iPHYc) * POM_PHY_c;
 
 % Grazing
 
-graz_PHY_c = tfun(y.T) * po.mu_PRT * y.iPRTc * y.iPHYc^2 / ...
+graz_PHY_c = tfun(T) * po.mu_PRT * y.iPRTc * y.iPHYc^2 / ...
     (y.iPHYc^2 + po.g_PHY^2 +...
     (y.iUNc*po.g_PHY/po.g_UN)^2 +...
     (y.iBAc*po.g_PHY/po.g_BA)^2);
@@ -141,7 +145,7 @@ Nfunc_TR_p = ((y.iTRp/y.iTRc)-ps.q_TR_p)/(ps.q_TR_p_rdf - ps.q_TR_p);
 
 temp = max([min([Nfunc_TR_n, Nfunc_TR_p, 1]),0]);
 
-Pmax_TR = po.mu_TR * tfun(y.T) * temp; % Max specific growth rate.
+Pmax_TR = po.mu_TR * tfun(T) * temp; % Max specific growth rate.
 
 % Light limitation and specific gross PP (as carbon)
 
@@ -149,8 +153,8 @@ if Pmax_TR == 0
     growTRc = 0;
 else
     growTRc = y.iTRc * Pmax_TR *...
-        (1 - exp(-po.alpha_TR_chl * (y.iTRchl/y.iTRc) * y.PAR / Pmax_TR)) *...
-        exp(-po.beta_TR * y.PAR);
+        (1 - exp(-po.alpha_TR_chl * (y.iTRchl/y.iTRc) * PAR / Pmax_TR)) *...
+        exp(-po.beta_TR * PAR);
 end
 
 % N assimilation, including fixation.
@@ -158,18 +162,18 @@ end
 Vmax_TR_n = (ps.q_TR_n_max - (y.iTRn/y.iTRc))/(ps.q_TR_n_max - ps.q_TR_n_rdf);
 temp = max(min(Vmax_TR_n,1),0); % Yet again forcing this.
 
-growTRnh4 = y.iTRc * po.vref_TR_n * tfun(y.T) * temp * ...
+growTRnh4 = y.iTRc * po.vref_TR_n * tfun(T) * temp * ...
     y.iNH4 / (y.iNH4 + po.k_TR_nh4 + (y.iNO3*po.k_TR_nh4/po.k_TR_no3));
 
-growTRno3 = y.iTRc * po.vref_TR_n * tfun(y.T) * temp * ...
+growTRno3 = y.iTRc * po.vref_TR_n * tfun(T) * temp * ...
     y.iNO3 / (y.iNO3 + po.k_TR_no3 + (y.iNH4*po.k_TR_no3/po.k_TR_nh4));
 
 % Fixation
 
-if y.T <= 20
+if T <= 20
     nfixTRmax = 0;
 else
-    nfixTRmax = tfun(y.T) * Vmax_TR_n * ...
+    nfixTRmax = tfun(T) * Vmax_TR_n * ...
         (((growTRc - (po.zeta_no3*growTRno3)) * ps.q_TR_n_max) - ...
         growTRno3 - growTRnh4)/...
         (1 + (po.zeta_nfix * ps.q_TR_n_max));
@@ -178,7 +182,7 @@ end
 
 % total assimilation of N
 
-growTRn = min(y.iTRc * po.vref_TR_n * tfun(y.T) * Vmax_TR_n,...
+growTRn = min(y.iTRc * po.vref_TR_n * tfun(T) * Vmax_TR_n,...
     growTRnh4 + growTRno3 + nfixTRmax);
 
 % Actual (not max) fixation rate
@@ -192,7 +196,7 @@ temp = max([min([Vmax_TR_p,1]),0]); % Yet again forcing this.
 
 % Assuming inorganic P is the limiter and supply, here's the max growth.
 
-growTRpo4 = y.iTRc * po.vref_TR_p * tfun(y.T) * temp * ...
+growTRpo4 = y.iTRc * po.vref_TR_p * tfun(T) * temp * ...
     y.iPO4 / (y.iPO4 + po.k_TR_po4);
 
 % Picking up PO4 from deep water (kind of unclear how this term makes
@@ -212,11 +216,14 @@ respTR = (po.zeta_no3 * growTRno3) + (po.zeta_nfix * growTRnfix);
 
 % Chlorophyll Production
 
-if y.PAR==0
+if PAR==0
     growTRchl = 0;
 else
     growTRchl = po.theta * growTRn * growTRc / ...
-        (po.alpha_TR_chl * y.iTRchl * y.PAR * exp(-po.beta_TR * y.PAR));
+        (po.alpha_TR_chl * y.iTRchl * PAR * exp(-po.beta_TR * PAR));
+    if isnan(growTRchl)
+        growTRchl = 0;
+    end
 end
 
 % DOM excretion!
@@ -276,7 +283,7 @@ POM_TR_chl = (y.iTRchl/y.iTRc) * POM_TR_c;
 
 % Grazing
 
-graz_TR_c = tfun(y.T) * po.mu_MZ * y.iMZc * y.iTRc^2 / ...
+graz_TR_c = tfun(T) * po.mu_MZ * y.iMZc * y.iTRc^2 / ...
     (y.iTRc^2 + po.g_TR^2 +...
     (y.iPRTc*po.g_TR/po.g_PRT)^2);
 graz_TR_n = (y.iTRn/y.iTRc) * graz_TR_c;
@@ -300,16 +307,16 @@ Nfunc_UN_p = ((y.iUNp/y.iUNc)-ps.q_UN_p)/(ps.q_UN_p_rdf - ps.q_UN_p);
 
 temp = max([min([Nfunc_UN_n, Nfunc_UN_p, 1]),0]);
 
-Pmax_UN = po.mu_UN * tfun(y.T) * temp; % Max specific growth rate.
+Pmax_UN = po.mu_UN * tfun(T) * temp; % Max specific growth rate.
 
 % Light limitation and specific gross PP (as carbon)
 
 if Pmax_UN == 0
     growUNc = 0;
 else
-    growUNc = y.iUNc * Pmax_UN *...
-        (1 - exp(-po.alpha_UN_chl * (y.iUNchl/y.iUNc) * y.PAR / Pmax_UN)) *...
-        exp(-po.beta_UN * y.PAR);
+    growUNc = nanmax(y.iUNc * Pmax_UN *...
+        (1 - exp(-po.alpha_UN_chl * (y.iUNchl/y.iUNc) * PAR / Pmax_UN)) *...
+        exp(-po.beta_UN * PAR), 0);
 end
 
 % N assimilation, including fixation.
@@ -317,18 +324,18 @@ end
 Vmax_UN_n = (ps.q_UN_n_max - (y.iUNn/y.iUNc))/(ps.q_UN_n_max - ps.q_UN_n_rdf);
 temp = max([min([Vmax_UN_n,1]),0]); % Yet again forcing this.
 
-growUNnh4 = y.iUNc * po.vref_UN_n * tfun(y.T) * temp * ...
+growUNnh4 = y.iUNc * po.vref_UN_n * tfun(T) * temp * ...
     y.iNH4 / (y.iNH4 + po.k_UN_nh4 + (y.iNO3*po.k_UN_nh4/po.k_UN_no3));
 
-growUNno3 = y.iUNc * po.vref_UN_n * tfun(y.T) * temp * ...
+growUNno3 = y.iUNc * po.vref_UN_n * tfun(T) * temp * ...
     y.iNO3 / (y.iNO3 + po.k_UN_no3 + (y.iNH4*po.k_UN_no3/po.k_UN_nh4));
 
 % Fixation
 
-if y.T <= 15
+if T <= 15
     nfixUNmax = 0;
 else
-    nfixUNmax = tfun(y.T) * Vmax_UN_n * ...
+    nfixUNmax = tfun(T) * Vmax_UN_n * ...
         (((growUNc - (po.zeta_no3*growUNno3)) * ps.q_UN_n_max) - ...
         growUNno3 - growUNnh4)/...
         (1 + (po.zeta_nfix * ps.q_UN_n_max));
@@ -337,7 +344,7 @@ end
 
 % total assimilation of N
 
-growUNn = min([y.iUNc * po.vref_UN_n * tfun(y.T) * Vmax_UN_n,...
+growUNn = min([y.iUNc * po.vref_UN_n * tfun(T) * Vmax_UN_n,...
     growUNnh4 + growUNno3 + nfixUNmax]);
 
 % Actual (not max) fixation rate
@@ -351,7 +358,7 @@ temp = max([min([Vmax_UN_p,1]),0]); % Yet again forcing this.
 
 % Assuming inorganic P is the limiter and supply, here's the max growth.
 
-growUNp = y.iUNc * po.vref_UN_p * tfun(y.T) * temp * ...
+growUNp = y.iUNc * po.vref_UN_p * tfun(T) * temp * ...
     y.iPO4 / (y.iPO4 + po.k_UN_po4);
 
 % Respiration required for nitrogen metabolism, only this time it also
@@ -361,11 +368,14 @@ respUN = (po.zeta_no3 * growUNno3) + (po.zeta_nfix * growUNnfix);
 
 % Chlorophyll Production
 
-if y.PAR == 0
+if PAR == 0
     growUNchl=0;
 else
     growUNchl = po.theta * growUNn * growUNc / ...
-        (po.alpha_UN_chl * y.iUNchl * y.PAR * exp(-po.beta_UN * y.PAR));
+        (po.alpha_UN_chl * y.iUNchl * PAR * exp(-po.beta_UN * PAR));
+    if isnan(growUNchl)
+        growUNchl = 0;
+    end
 end
 
 % DOM excretion!
@@ -425,7 +435,7 @@ POM_UN_chl = (y.iUNchl/y.iUNc) * POM_UN_c;
 
 % Grazing
 
-graz_UN_c = tfun(y.T) * po.mu_PRT * y.iPRTc * y.iUNc^2 / ...
+graz_UN_c = tfun(T) * po.mu_PRT * y.iPRTc * y.iUNc^2 / ...
     (y.iUNc^2 + po.g_UN^2 +...
     (y.iPHYc*po.g_UN/po.g_PHY)^2 + ...
     (y.iBAc*po.g_UN/po.g_BA)^2);
@@ -452,8 +462,8 @@ Nfunc_ba_n = y.iBAn/(y.iBAc*ps.q_BA_n); %bacterial N/C quota /ref quota
 Nfunc_ba_p = y.iBAp/(y.iBAc*ps.q_BA_p);
 temp = min([Nfunc_ba_n, Nfunc_ba_p]);
 temp = min(temp, 1); % Make sure the limit is unity (not the case for mtabs?)
-growBAldoc = po.mu_BA * y.iBAc * tfun(y.T) * temp * ALC / (ALC+ po.k_DOM + ASC);
-growBAsdoc = po.mu_BA * y.iBAc * tfun(y.T) * temp * ASC / (ASC+ po.k_DOM + ALC);
+growBAldoc = po.mu_BA * y.iBAc * tfun(T) * temp * ALC / (ALC+ po.k_DOM + ASC);
+growBAsdoc = po.mu_BA * y.iBAc * tfun(T) * temp * ASC / (ASC+ po.k_DOM + ALC);
 %^^^I added the tfun back into this version (it wasn't in the one H. Kim
 %sent.)
 % DON and DOP usage
@@ -529,10 +539,11 @@ dydtt.iBAc = (growBAc - refrBAc - excrBAc - grazBAc - respBA - mortBAc); % Origi
 dydtt.iBAn = (growBAn - refrBAn - excrBAn - remiBAn - grazBAn - mortBAn);
 dydtt.iBAp = (growBAp - refrBAp - excrBAp - remiBAp - grazBAp - mortBAp);
 
-%8. Flux of inorganic nutrients through bacteria
-dydtt.fluxBAnh4 = growBAnh4 - remiBAn;
-dydtt.fluxBAno3 = growBAno3;
-dydtt.fluxBApo4 = growBApo4 - remiBAp;
+%8. Flux of inorganic nutrients through bacteria (Formerly part of dydtt
+%diagnostics)
+fluxBAnh4 = growBAnh4 - remiBAn;
+fluxBAno3 = growBAno3;
+fluxBApo4 = growBApo4 - remiBAp;
 
 %%-----------------------------------------------------------------------
 %      Protozoan Grazers
@@ -556,7 +567,7 @@ excr_PRT_SDOP = po.ex_PRT * (1 - po.f_ex_PRT) * growPRTp * (y.iPRTp/(y.iPRTc*ps.
 
 % Respiration
 
-resp_PRT = (po.resp_B_PRT * tfun(y.T) * y.iPRTc) + (po.resp_A_PRT * growPRTc);
+resp_PRT = (po.resp_B_PRT * tfun(T) * y.iPRTc) + (po.resp_A_PRT * growPRTc);
 
 % SDOM release to adjust stoichiometry
 
@@ -581,7 +592,7 @@ POM_PRT_p = po.q_POM_p * POM_PRT_c;
 
 % Grazing on protozoa by metazoa.
 
-graz_PRT_c = tfun(y.T) * po.mu_MZ * y.iMZc * y.iPRTc^2 / ...
+graz_PRT_c = tfun(T) * po.mu_MZ * y.iMZc * y.iPRTc^2 / ...
     (y.iPRTc^2 + po.g_PRT^2 + (y.iTRc * po.g_PRT / po.g_TR)^2);
 graz_PRT_n = graz_PRT_c * y.iPRTn / y.iPRTc;
 graz_PRT_p = graz_PRT_c * y.iPRTp / y.iPRTc;
@@ -614,7 +625,7 @@ excr_MZ_SDOP = po.ex_MZ * (1 - po.f_ex_MZ) * growMZp * (y.iMZp/(y.iMZc*ps.q_MZ_p
 
 % Respiration
 
-resp_MZ = (po.resp_B_MZ * tfun(y.T) * y.iMZc) + (po.resp_A_MZ * growMZc);
+resp_MZ = (po.resp_B_MZ * tfun(T) * y.iMZc) + (po.resp_A_MZ * growMZc);
 
 % Semilabile DOM stoich adjustment
 
@@ -698,11 +709,11 @@ NTRF = po.r_ntrf * y.iNH4;
 
 % Dissolved Nutrient Rates of Change
 
-dydtt.iNH4 = dydtt.fluxBAnh4 + remi_PRT_n + remi_MZ_n + remi_HZ_n + ...
+dydtt.iNH4 = fluxBAnh4 + remi_PRT_n + remi_MZ_n + remi_HZ_n + ...
     excr_TR_n_nh4 + excr_UN_n_nh4 -...
     growPHYnh4 - growTRnh4 - growUNnh4 - NTRF;
-dydtt.iNO3 = dydtt.fluxBAno3 - growPHYno3 - growTRno3 - growUNno3 + NTRF;
-dydtt.iPO4 = dydtt.fluxBApo4 + remi_PRT_p + remi_MZ_p + remi_HZ_p -...
+dydtt.iNO3 = fluxBAno3 - growPHYno3 - growTRno3 - growUNno3 + NTRF;
+dydtt.iPO4 = fluxBApo4 + remi_PRT_p + remi_MZ_p + remi_HZ_p -...
     growPHYpo4 - growTRpo4 - growUNp;
 
 %%-----------------------------------------------------------------------
@@ -743,14 +754,21 @@ dydtt.iSDOMp = excr_PHY_SDOP + excr_TR_SDOP + excr_UN_SDOP + excrBAp +...
 %      Diagnostic Variables
 %-----------------------------------------------------------------------
 
-% Primary Production
+% % Primary Production
+% 
+% dydtt.PrPr = growPHYc + growTRc + growUNc - respPHY - respTR - respUN - ...
+%     excr_PHY_LDOC - excr_TR_LDOC - excr_UN_LDOC -...
+%     excr_PHY_SDOC - excr_TR_SDOC - excr_UN_SDOC;
+% 
+% % Bacterial Production
+% 
+% dydtt.BPr = growBAc - respBA;
 
-dydtt.PrPr = growPHYc + growTRc + growUNc - respPHY - respTR - respUN - ...
-    excr_PHY_LDOC - excr_TR_LDOC - excr_UN_LDOC -...
-    excr_PHY_SDOC - excr_TR_SDOC - excr_UN_SDOC;
-
-% Bacterial Production
-
-dydtt.BPr = growBAc - respBA;
-
+dydtt = dydtt';
+% if sum(isnan(dydtt))~=0
+%     disp('NaN at ' + string(find(isnan(dydtt))) +...
+%         ', time ' +string(ts)+' days.')
+%     dydtt(isnan(dydtt))=0;
+%     return
+% end
 end

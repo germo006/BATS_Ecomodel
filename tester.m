@@ -13,28 +13,16 @@ y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 [ps_names, I] = sort(ps_names, 'descend'); ps_vals = ps_vals(I);
 [y_names, I] = sort(y_names, 'descend'); y_vals = y_vals(I);
 
-% run once
-% filetxt = string(fileread('Copy_of_ode_mod_ecosys.m'));
-% po_replace = 'po_vals(' + string(1:length(po_vals))' + ')';
-% ps_replace = 'ps_vals(' + string(1:length(ps_vals))' + ')';
-% y_replace = 'y_vals(' + string(1:length(y_vals))' + ')';
-% dydtt_replace = 'dydtt(' + string(1:length(dydtt_vals))' + ')';
-% allnames = [po_names;ps_names;y_names;dydtt_names];
-% allreplace = [po_replace;ps_replace;y_replace;dydtt_replace];
-% 
-% filetxt = string(fileread('Copy_of_ode_mod_ecosys.m'));
-% for ii = 1:length(allreplace)
-%     filetxt = strrep(filetxt, allnames{ii}, allreplace{ii});
-% end
-% filetxt = regexprep(filetxt, '[\n\r]+', '\n');
-% 
-% fid = fopen('ode_mod_ecosys_vec.m', 'wt');
-% fwrite(fid, filetxt);
-% fclose(fid);
-% %After the fclose, the function intro and dimensions must be modded.
 
+%% Running the forawrd model with preset params. 
 
-%%
 odefun = @(ts, y_vals) ode_mod_ecosys_vec(y_vals, ps_vals, po_vals, ts);
-[to, yo] = ode45(odefun, [0:0.1:10], y_vals);
+[to, yo] = ode45(odefun, [0:0.001:1000]', y_vals);
+
+plot(to, yo(:,[11,27,30]), 'LineWidth', 1.5)
+legend('SDOC', 'LDOC', 'RDOC')
+
+figure
+plot(to, yo(:, [33,19,14]), 'LineWidth', 1.5)
+legend('BAc', 'PHYc', 'PRTc')
 
