@@ -3,7 +3,10 @@
 % might actually be the play to just combine all 11 sections of the
 % equations in one place, actually.
 function [dydtt] = ode_mod_ecosys_vec(y_vals, ps_vals, po_vals, ts)
-%global y
+if mod(ts, 10) == 0
+    msg = 'Evaluating at t = ' + string(ts) + ' days';
+    disp(msg)
+end
 %%-----------------------------------------------------------------------
 %      Temperature Effects and PAR
 %-----------------------------------------------------------------------

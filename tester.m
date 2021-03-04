@@ -19,10 +19,14 @@ y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 odefun = @(ts, y_vals) ode_mod_ecosys_vec(y_vals, ps_vals, po_vals, ts);
 [to, yo] = ode45(odefun, [0:0.001:1000]', y_vals);
 
+%%
 plot(to, yo(:,[11,27,30]), 'LineWidth', 1.5)
 legend('SDOC', 'LDOC', 'RDOC')
+ylabel('mmol C m^{-3}')
+xlabel('days')
 
 figure
-plot(to, yo(:, [33,19,14]), 'LineWidth', 1.5)
-legend('BAc', 'PHYc', 'PRTc')
-
+plot(to, yo(:, [33,19,14,4]), 'LineWidth', 1.5)
+legend('BAc', 'PHYc', 'PRTc', 'UNc')
+ylabel('mmol C m^{-3}')
+xlabel('days')
