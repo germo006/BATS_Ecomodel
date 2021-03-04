@@ -6,7 +6,7 @@
 
 constructor
 %%
-test = ode_mod_ecosys_noUN(y, ps, po, 0.5);
+test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z);
 
 dydtt_names = 'dydtt.' + string(fieldnames(test)); dydtt_vals = struct2array(test)';
 

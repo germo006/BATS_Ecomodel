@@ -5,7 +5,7 @@
 
 % replacement for when vectorized
 % ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts)
-function [dydtt] = ode_mod_ecosys_noUN(y, ps, po, ts)
+function [dydtt] = ode_mod_ecosys_noUN(y, ps, po, ts, z)
 
 if mod(ts, 10) == 0
     msg = 'Evaluating at t = ' + string(ts) + ' days';
@@ -16,10 +16,17 @@ end
 %      Temperature Effects and PAR
 %-----------------------------------------------------------------------
 
+forceNH4 = 0.03;
+forceNO3 = 4.89;
+forcePO4 = 0.671;
+T = 21 + randn(1);
+MLD = 50;
 tfun = @(T) exp(-po.AE*((1/(T+273.15))-(1/(25+273.15))));
 pfun = @(t) max(0, -10*cos(2*pi*t));
-PAR = pfun(ts);
-T = 21;
+PAR0 = pfun(ts);
+PAR = PAR0*exp(z*(-0.038 + 0.05*(y.iPHYchl + y.iTRchl)));
+Kzfun = @(z, MLD) 1.1e-4*24*3600*exp(-0.01*(z - MLD));
+Kz = Kzfun(z, MLD);
 
 
 %%-----------------------------------------------------------------------
@@ -714,10 +721,13 @@ NTRF = po.r_ntrf * y.iNH4;
 
 dydtt.iNH4 = fluxBAnh4 + remi_PRT_n + remi_MZ_n + remi_HZ_n + ...
     excr_TR_n_nh4  -... + excr_UN_n_nh4
-    growPHYnh4 - growTRnh4  - NTRF; %- growUNnh4
-dydtt.iNO3 = fluxBAno3 - growPHYno3 - growTRno3 + NTRF; % - growUNno3
+    growPHYnh4 - growTRnh4  - NTRF +... %- growUNnh4
+    Kz*(forceNH4 - y.iNH4);
+dydtt.iNO3 = fluxBAno3 - growPHYno3 - growTRno3 + NTRF +...; % - growUNno3
+    Kz*(forceNO3 - y.iNO3);
 dydtt.iPO4 = fluxBApo4 + remi_PRT_p + remi_MZ_p + remi_HZ_p -...
-    growPHYpo4 - growTRpo4; % - growUNp
+    growPHYpo4 - growTRpo4 +...; % - growUNp
+    Kz*(forcePO4 - y.iPO4);
 
 %%-----------------------------------------------------------------------
 %      Change in Dissolved Organic Matter
@@ -757,15 +767,10 @@ dydtt.iSDOMp = excr_PHY_SDOP + excr_TR_SDOP + excrBAp +... + excr_UN_SDOP
 %      Diagnostic Variables
 %-----------------------------------------------------------------------
 
-% % Primary Production
-% 
-% dydtt.PrPr = growPHYc + growTRc + growUNc - respPHY - respTR - respUN - ...
-%     excr_PHY_LDOC - excr_TR_LDOC - excr_UN_LDOC -...
-%     excr_PHY_SDOC - excr_TR_SDOC - excr_UN_SDOC;
-% 
-% % Bacterial Production
-% 
-% dydtt.BPr = growBAc - respBA;
+diaginput = [growPHYc, growTRc, -respPHY, -respTR, -excr_PHY_LDOC,...
+    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, respBA];
+
+[dydtt.pp,dydtt.bp] = ppbp(diaginput);
 
 dydtt = dydtt';
 % if sum(isnan(dydtt))~=0
