@@ -4,8 +4,8 @@
 % equations in one place, actually.
 
 % replacement for when vectorized
-% ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts)
-function [dydtt] = ode_mod_ecosys_noUN(y, ps, po, ts, z)
+% ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig)
+function [dydtt] = ode_mod_ecosys_noUN(y, ps, po, ts, z, concat3PAR, concat3PARsig)
 
 if mod(ts, 10) == 0
     msg = 'Evaluating at t = ' + string(ts) + ' days';
@@ -16,15 +16,19 @@ end
 %      Temperature Effects and PAR
 %-----------------------------------------------------------------------
 
-forceNH4 = 0.03;
-forceNO3 = 4.89;
-forcePO4 = 0.671;
-T = 21 + randn(1);
-MLD = 50;
+% Retrieve forcings: temperature, mixed-layer depth, surface PAR, nutrient
+% boundary conditions. Right now T and PAR0 are the only nonstatic drivers,
+% and only PAR0 is subject to the constraints of data from BATS.
+[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig);
+
+% Calculate the temperature effects on microbial growth.
 tfun = @(T) exp(-po.AE*((1/(T+273.15))-(1/(25+273.15))));
-pfun = @(t) max(0, -10*cos(2*pi*t));
-PAR0 = pfun(ts);
+
+% Calculate PAR at the given depth based on attenuation by water and Chl.
 PAR = PAR0*exp(z*(-0.038 + 0.05*(y.iPHYchl + y.iTRchl)));
+
+% Calculate vertical eddy diffusivity based on an exponential relationship
+% from the MLD.
 Kzfun = @(z, MLD) 1.1e-4*24*3600*exp(-0.01*(z - MLD));
 Kz = Kzfun(z, MLD);
 
@@ -43,9 +47,9 @@ temp = max([min([Nfunc_phy_n, Nfunc_phy_p, 1]),0]); % Force elemental limits
 Pmax_phy = po.mu_PHY * tfun(T) * temp; % Max specific growth rate.
 
 % Light limitation and specific gross PP (as carbon)
-growPHYc = y.iPHYc * Pmax_phy *...
+growPHYc = nanmax(0,y.iPHYc * Pmax_phy *...
     (1 - exp(-po.alpha_PHY_chl * (y.iPHYchl/y.iPHYc) * PAR / Pmax_phy)) *...
-    exp(-po.beta_PHY * PAR);
+    exp(-po.beta_PHY * PAR));
 
 % Nitrogen assimilation
 
@@ -77,11 +81,8 @@ respPHY = po.zeta_no3 * growPHYno3;
 
 % Chlorophyll Production
 
-growPHYchl = po.theta * growPHYn * growPHYc / ...
-    (po.alpha_PHY_chl * y.iPHYchl * PAR * exp(-po.beta_PHY * PAR));
-if isnan(growPHYchl)
-    growPHYchl = 0;
-end
+growPHYchl = nanmax(0,po.theta * growPHYn * growPHYc / ...
+    (po.alpha_PHY_chl * y.iPHYchl * PAR * exp(-po.beta_PHY * PAR)));
 
 % DOM excretion!
 
@@ -545,7 +546,10 @@ mortBAn = po.r_BAmort * y.iBAn;
 mortBAp = po.r_BAmort * y.iBAp;
 
 %7. BA Derivs
-dydtt.iBAc = (growBAc - refrBAc - excrBAc - grazBAc - respBA - mortBAc); % Originally in seconds and converted by SecPerDay
+dydtt.iBAc = (growBAc - refrBAc - excrBAc - grazBAc - respBA - mortBAc); 
+% Originally in seconds and converted by SecPerDay. In this version, I use
+% days as the base unit, and that is the same as the parameters in the
+% paper. This should be dimensionally consistent.
 dydtt.iBAn = (growBAn - refrBAn - excrBAn - remiBAn - grazBAn - mortBAn);
 dydtt.iBAp = (growBAp - refrBAp - excrBAp - remiBAp - grazBAp - mortBAp);
 
@@ -718,6 +722,11 @@ dydtt.iDETp = POM_PHY_p + POM_TR_p + POM_PRT_p + POM_MZ_p + POM_HZ_p - DISS_DET_
 NTRF = po.r_ntrf * y.iNH4;
 
 % Dissolved Nutrient Rates of Change
+% Note that here I have added inorganic nutrient exhange by eddy
+% turbulence. The units are ostensibly funky, because they work out to a
+% moles * exchange velocity. We can assume that the lateral area of
+% each box is 1 m^2, and then the unis work out. (Area * v * moles = 
+% dC/dt).
 
 dydtt.iNH4 = fluxBAnh4 + remi_PRT_n + remi_MZ_n + remi_HZ_n + ...
     excr_TR_n_nh4  -... + excr_UN_n_nh4

@@ -5,8 +5,9 @@
 % no way vectorized.
 
 constructor
+load('PARdata.mat', 'concat3PAR', 'concat3PARsig')
 %%
-test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z);
+test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z, concat3PAR, concat3PARsig);
 
 dydtt_names = 'dydtt.' + string(fieldnames(test)); dydtt_vals = struct2array(test)';
 
