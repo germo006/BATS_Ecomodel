@@ -6,7 +6,10 @@ Many of my first-attempts can be found in `/Draft`. What I did first was to take
 If interested in *using* these functions, start with the last-modified set of codes.
 
 ## Use of these codes
-1. Clone this repo and navigate to the latest update (whatever isn't in `/Draft`). 
+
+As it stands, this is a stable forward model using dummy parameters from the original paper.
+
+1. Clone this repo and navigate to the latest update (whatever isn't in `/Draft` or `/sandbox`). 
 2. I recommend also grabbing `AlbumMaps.mat` from [here](github.com/germo006/NoahMaps). The plots rely on these colormaps. 
 3. Play around with `tester.m`. This is a wrapper for the respective model functions (`ode_mod_ecosys_xxx_vec.m`, `getForcing.m`, `getppbp.m`, `constructor.m`).
   * `tester.m` has an odd section where it takes the input from `constructor.m` and rips the `struct` variables apart, piecing them back together as column vectors. When you get the output and you are curious which variable is now what, look at the `xxx_names` variables. They show the original names of the inputs in the same order as they are indexed in the solver-readable vectors. 
@@ -16,3 +19,11 @@ If interested in *using* these functions, start with the last-modified set of co
     * You will then need to change the first line of the `ode_mod_ecosys_xxx_vec` function so that the name and inputs match the filename and the requirements of the wrapper. 
   b. Changing the parameter values and initial state values can be done in `constructor.m`. Simply change the value you want to alter. 
   c. Changing `getForcing.m` is up to you. I'm still working on making that one more robust to use real data. 
+
+## What Remains
+
+There is a lot to be done yet. As the goal of this is to bring metabolite chemistry into play and adapt an inverse-modeling approach to BATS, this repo is effectively a big testbed at the moment.
+
+1. No data assimilation yet, only some forcing.
+2. Have not constructed adjoint model for optimization. 
+3. Currently working on extending to 1-D from 0-D.
