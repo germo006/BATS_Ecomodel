@@ -39,6 +39,6 @@ tf = mod(tr, 24) +1;
 rng(tr)
 
 % Finally, the value of PAR at the surface is determined. It must be >0.
-PAR0 = max(0, normrnd(concat3PAR(tf),concat3PARsig(tf)));
+PAR0 = max(0, concat3PAR(tf)); %normrnd(concat3PAR(tf),concat3PARsig(tf)));
 
 end
