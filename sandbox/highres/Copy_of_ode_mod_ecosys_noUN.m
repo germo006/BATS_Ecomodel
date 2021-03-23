@@ -777,7 +777,7 @@ dydtt.iSDOMp = excr_PHY_SDOP + excr_TR_SDOP + excrBAp +... + excr_UN_SDOP
 %-----------------------------------------------------------------------
 
 diaginput = [growPHYc, growTRc, -respPHY, -respTR, -excr_PHY_LDOC,...
-    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, respBA];
+    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, -respBA];
 
 [dydtt.pp,dydtt.bp] = ppbp(diaginput);
 

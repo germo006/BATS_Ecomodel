@@ -53,8 +53,9 @@ opts = odeset('RelTol' , 1e-6, 'MaxStep', 0.1);
 [to, yo] = ode45(odefun, [0:1/24:10000]', y_vals, opts);
 
 %%
-[ppo, bpo] = getppbp(odefun, to, yo);
-
+tic
+[ppo, bpo, ~] = getppbp(odefun, to, yo);
+toc
 %% Plots.
 % Depending on where you need to look and how much you need to zoom, choose
 % x1 and x2 accordingly. 

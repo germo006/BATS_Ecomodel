@@ -612,8 +612,13 @@ dydtt(6) = excr_PHY_SDOP + excr_TR_SDOP + excrBAp +... + excr_UN_SDOP
 %      Diagnostic Variables
 %-----------------------------------------------------------------------
 diaginput = [growPHYc, growTRc, -respPHY, -respTR, -excr_PHY_LDOC,...
-    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, respBA];
-[dydtt(1),dydtt(31)] = ppbp(diaginput);
+    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, -respBA];
+
+% Pull out the "diagnostic variables" primary production
+% and bacterial production from the results of an ODE solve of the model.
+%   
+dydtt(1) = sum(diaginput(1:8));
+dydtt(31)= sum(diaginput(9:10));
 dydtt = dydtt';
 % if sum(isnan(dydtt))~=0
 %     disp('NaN at ' + string(find(isnan(dydtt))) +...
