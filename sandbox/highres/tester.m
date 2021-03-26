@@ -11,7 +11,7 @@ constructor
 % of surface PAR flux at BATS.  These two variables are required inputs for
 % the model function as of 15 Mar 2021.
 
-load('PARdata.mat', 'concat3PAR', 'concat3PARsig')
+load('PARdata.mat', 'simPAR')
 
 %% Creating Input Vectors
 % This section runs the original code (that can handle a structure as 
@@ -24,7 +24,7 @@ load('PARdata.mat', 'concat3PAR', 'concat3PARsig')
 % solvers require it be a column vector of the same size as y (both yo and
 % the output).
 
-test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z, concat3PAR, concat3PARsig);
+test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z, simPAR);
 
 dydtt_names = 'dydtt.' + string(fieldnames(test)); dydtt_vals = struct2array(test)';
 
@@ -48,21 +48,25 @@ y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 % differential equations and pp, bp are the instantaneous rates rather than
 % the integrals.
 
-odefun = @(ts, y_vals) ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig);
-opts = odeset('RelTol' , 1e-6, 'MaxStep', 0.1);
-[to, yo] = ode45(odefun, [0:1/24:10000]', y_vals, opts);
+odefun = @(ts, y_vals) ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, simPAR);
+opts = odeset('RelTol' , 1e-6);
+tic
+[to, yo] = ode45(odefun, [0:1/(30*60*24):100]', y_vals, opts);
+disp('Elapsed integration time:')
+toc 
 
 %%
 tic
 [ppo, bpo, ~] = getppbp(odefun, to, yo);
+disp('Elapsed diagnostic eval time:')
 toc
 %% Plots.
 % Depending on where you need to look and how much you need to zoom, choose
 % x1 and x2 accordingly. 
 load('AlbumMaps.mat')
 
-x1 = 9900;
-x2 = 10000;
+x1 = 50;
+x2 = 100;
 
 subplot(3,1,1)
 plot(to, yo(:,24), 'LineWidth', 1.5, 'Color', CP1{4})

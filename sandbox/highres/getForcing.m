@@ -1,7 +1,7 @@
 %% Noah Germolus 12 Mar 2021
 % This is a script that pulls forcing values for the ode_mod functions.
 
-function [forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(t, concat3PAR, concat3PARsig)
+function [forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(t, simPAR)
 
 % NUTRIENTS
 % These are average nutrient concentrations at the base of the mixed layer
@@ -27,18 +27,18 @@ MLD = 50;
 % deviation  (n = 1800 measurements/hr * 3 days = 5400). 
 
 % I then take whatever time is being used in the differential equation and 
-% round it to the nearest hour.
-tr = round(24*t);
+% round it to the nearest two seconds.
+tr = round(24*30*60*t);
 
 % Because the PAR input vectors are 24 elements and I need to scan through 
 % them again every 24 h, I create an index that cycles from 1-24.
-tf = mod(tr, 24) +1; 
+tf = mod(tr, 24*30*60) +1; 
 
 % I use that hour code as a seed for the rng so that if ode45 
 % evaluates multiple times in that vicinity, the PAR doesn't change.
 rng(tr)
 
 % Finally, the value of PAR at the surface is determined. It must be >0.
-PAR0 = max(0, concat3PAR(tf)); %normrnd(concat3PAR(tf),concat3PARsig(tf)));
+PAR0 = max(0, simPAR(tf)); %normrnd(concat3PAR(tf),concat3PARsig(tf)));
 
 end

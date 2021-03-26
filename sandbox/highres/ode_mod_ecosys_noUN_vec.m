@@ -3,8 +3,8 @@
 % might actually be the play to just combine all 11 sections of the
 % equations in one place, actually.
 % replacement for when vectorized
-% ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig)
-function [dydtt] = ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig)
+% ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, simPAR)
+function [dydtt] = ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, simPAR)
 if mod(ts, 10) == 0
     msg = 'Evaluating at t = ' + string(ts) + ' days';
     disp(msg)
@@ -15,7 +15,7 @@ end
 % Retrieve forcings: temperature, mixed-layer depth, surface PAR, nutrient
 % boundary conditions. Right now T and PAR0 are the only nonstatic drivers,
 % and only PAR0 is subject to the constraints of data from BATS.
-[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig);
+[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, simPAR);
 % Calculate the temperature effects on microbial growth.
 tfun = @(T) exp(-po_vals(73)*((1/(T+273.15))-(1/(25+273.15))));
 % Calculate PAR at the given depth based on attenuation by water and Chl.
@@ -613,12 +613,11 @@ dydtt(6) = excr_PHY_SDOP + excr_TR_SDOP + excrBAp +... + excr_UN_SDOP
 %-----------------------------------------------------------------------
 diaginput = [growPHYc, growTRc, -respPHY, -respTR, -excr_PHY_LDOC,...
     -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, -respBA];
-
 % Pull out the "diagnostic variables" primary production
 % and bacterial production from the results of an ODE solve of the model.
 %   
 dydtt(1) = sum(diaginput(1:8));
-dydtt(31)= sum(diaginput(9:10));
+dydtt(31) = sum(diaginput(9:10));
 dydtt = dydtt';
 % if sum(isnan(dydtt))~=0
 %     disp('NaN at ' + string(find(isnan(dydtt))) +...
