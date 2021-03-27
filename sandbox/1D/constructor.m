@@ -7,6 +7,8 @@ po = struct; % optimizable params
 ps = struct; % fixed params
 y = struct;  % state vars
 
+base = ones(100,1); %Something to make into 100-element vectors
+
 % Tfun
 po.AE = 2000;
 
@@ -155,52 +157,52 @@ ps.q_MZ_p = 0.008;
 %y.T = 20; % in deg C
 %y.PAR = 0; % in W m^-2
 
-y.iPHYc = 0.876 * 1.056; %*
-y.iPHYn = 0.477; %*
-y.iPHYp = 0.00863 * 1.1838; %*
-y.iPHYchl = 0.2; % Guess in mg/m3 based on even split
+y.iPHYc = 0.876 * 1.056* base; %*
+y.iPHYn = 0.477* base; %*
+y.iPHYp = 0.00863 * 1.1838* base; %*
+y.iPHYchl = 0.2* base; % Guess in mg/m3 based on even split
 
-y.iTRc = 0.312 * 0.269; %**
-y.iTRn = 0.0494 * 0.309;%**
-y.iTRp = 0.00236 * 0.1725;%**
-y.iTRchl = 0.051;
+y.iTRc = 0.312 * 0.269* base; %**
+y.iTRn = 0.0494 * 0.309* base;%**
+y.iTRp = 0.00236 * 0.1725* base;%**
+y.iTRchl = 0.051* base;
 
 % y.iUNc = 0.312 * 0.626;%**
 % y.iUNn = 0.0494 * 0.716;%**
 % y.iUNp = 0.00236 * 0.4219;%**
 % y.iUNchl = 0.1;
 
-y.iBAc = 0.741; %*
-y.iBAn = 0.122 * 0.376; %*
-y.iBAp = 0.00863 * 3.3373; %*
+y.iBAc = 0.741* base; %*
+y.iBAn = 0.122 * 0.376* base; %*
+y.iBAp = 0.00863 * 3.3373* base; %*
 
-y.iPRTc = 0.876 * 1.067; %*
-y.iPRTn = 0.122 * 1.643; %*
-y.iPRTp = 0.00863 * 2.5191; %*
+y.iPRTc = 0.876 * 1.067* base; %*
+y.iPRTn = 0.122 * 1.643* base; %*
+y.iPRTp = 0.00863 * 2.5191* base; %*
 
-y.iMZc = 0.793; %*
-y.iMZn = 0.122 * 0.342; %*
-y.iMZp = 0.00863 * 0.2163; %*
+y.iMZc = 0.793* base; %*
+y.iMZn = 0.122 * 0.342* base; %*
+y.iMZp = 0.00863 * 0.2163* base; %*
 
-y.iDETc = 1; %* (Altered NPG)
-y.iDETn = 0.486; %*
-y.iDETp = 0; %*
+y.iDETc = 1* base; %* (Altered NPG)
+y.iDETn = 0.486* base; %*
+y.iDETp = 0* base; %*
 
-y.iNO3 = 3.41; %*
-y.iNH4 = y.iNO3/10; % all mmol m^-3. Guessses from EQP site avg
-y.iPO4 = 0.559; %*
+y.iNO3 = 3.41* base; %*
+y.iNH4 = y.iNO3(end)/10.* base; % all mmol m^-3. Guessses from EQP site avg
+y.iPO4 = 0.559* base; %*
 
-y.iLDOMc = 0.005; %* (Altered NPG)
-y.iLDOMn = 0.122 * 0.220; %*
-y.iLDOMp = 0.00863 * 0.3451; %*
+y.iLDOMc = 0.005* base; %* (Altered NPG)
+y.iLDOMn = 0.122 * 0.220* base; %*
+y.iLDOMp = 0.00863 * 0.3451* base; %*
 
-y.iSDOMc = 9; %*
-y.iSDOMn = 2.90; %*
-y.iSDOMp = 0; %*
+y.iSDOMc = 9* base; %*
+y.iSDOMn = 2.90* base; %*
+y.iSDOMp = 0* base; %*
 
 % y.fluxBApo4 = 0; %
 % y.fluxBAno3 = 0; %
 % y.fluxBAnh4 = 0; %
-y.pp = 0; %
-y.bp = 0; %
-z = 1;
+y.pp = 0* base; %
+y.bp = 0* base; %
+z = [0.5:1:99.5]';

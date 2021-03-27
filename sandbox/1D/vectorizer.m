@@ -9,7 +9,8 @@ load('PARdata.mat', 'concat3PAR', 'concat3PARsig')
 %%
 test = ode_mod_ecosys_noUN(y, ps, po, 0.5, z, concat3PAR, concat3PARsig);
 
-dydtt_names = 'dydtt.' + string(fieldnames(test)); dydtt_vals = struct2array(test)';
+dydtt_names = 'dydtt.' + string(fieldnames(test)); 
+dydtt_vals = struct2array(test)';
 
 po_names = 'po.' + string(fieldnames(po)); po_vals = struct2array(po)';
 ps_names = 'ps.' + string(fieldnames(ps)); ps_vals = struct2array(ps)';
@@ -24,8 +25,8 @@ y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 filetxt = string(fileread('Copy_of_ode_mod_ecosys_noUN.m'));
 po_replace = 'po_vals(' + string(1:length(po_vals))' + ')';
 ps_replace = 'ps_vals(' + string(1:length(ps_vals))' + ')';
-y_replace = 'y_vals(' + string(1:length(y_vals))' + ')';
-dydtt_replace = 'dydtt(' + string(1:length(dydtt_vals))' + ')';
+y_replace = 'y_vals(' + string(1:length(y_vals))' + ',:)';
+dydtt_replace = 'dydtt(' + string(1:length(dydtt_vals))' + ',:)';
 allnames = [po_names;ps_names;y_names;dydtt_names];
 allreplace = [po_replace;ps_replace;y_replace;dydtt_replace];
 

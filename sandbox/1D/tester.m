@@ -32,11 +32,12 @@ po_names = 'po.' + string(fieldnames(po)); po_vals = struct2array(po)';
 ps_names = 'ps.' + string(fieldnames(ps)); ps_vals = struct2array(ps)';
 y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 
-[dydtt_names, I] = sort(dydtt_names, 'descend'); dydtt_vals = dydtt_vals(I);
+[dydtt_names, I] = sort(dydtt_names, 'descend'); dydtt_vals = dydtt_vals(I,:);
 [po_names, I] = sort(po_names, 'descend'); po_vals = po_vals(I);
 [ps_names, I] = sort(ps_names, 'descend'); ps_vals = ps_vals(I);
-[y_names, I] = sort(y_names, 'descend'); y_vals = y_vals(I);
+[y_names, I] = sort(y_names, 'descend'); y_vals = y_vals(I,:);
 
+y_vals_rs = reshape(y_vals, 31*100, 1);
 
 %% Running the forawrd model with preset params. 
 % This runs the forward model, then using the integrated solution pulls out
@@ -50,12 +51,14 @@ y_names =  'y.'+ string(fieldnames(y)); y_vals = struct2array(y)';
 
 odefun = @(ts, y_vals) ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig);
 opts = odeset('RelTol' , 1e-6, 'MaxStep', 0.1);
-[to, yo] = ode45(odefun, [0:1/24:10000]', y_vals, opts);
+[to, yo] = ode45(odefun, [0:1/24:10]', y_vals, opts);
+
+yo = reshape(yo, length(y_vals)/length(z), length(z), length(to));
 
 %%
-tic
-[ppo, bpo, ~] = getppbp(odefun, to, yo);
-toc
+% tic
+% [ppo, bpo, ~] = getppbp(odefun, to, yo);
+% toc
 %% Plots.
 % Depending on where you need to look and how much you need to zoom, choose
 % x1 and x2 accordingly. 
