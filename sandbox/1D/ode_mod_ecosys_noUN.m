@@ -57,9 +57,9 @@ temp = max([min([Nfunc_phy_n, Nfunc_phy_p, v1],[], 2),v0],[], 2); % Force elemen
 Pmax_phy = po.mu_PHY .* tfun(T) .* temp; % Max specific growth rate.
 
 % Light limitation and specific gross PP (as carbon)
-growPHYc = nanmax(v0,y.iPHYc .* Pmax_phy .*...
+growPHYc = nanmax([v0,y.iPHYc .* Pmax_phy .*...
     (1 - exp(-po.alpha_PHY_chl .* (y.iPHYchl./y.iPHYc) .* PAR ./ Pmax_phy)) .*...
-    exp(-po.beta_PHY .* PAR));
+    exp(-po.beta_PHY .* PAR)], [], 2);
 
 % Nitrogen assimilation
 
@@ -114,10 +114,10 @@ excr_PHY_c_act = 0.5 .* y.iPHYc .* max([v0,...
 
 if excr_PHY_c_act > 0
     excr_PHY_n_act = 0.5 .* 0.25 .* y.iPHYn .* max([0,...
-        1 - (y.iPHYp ./ y.iPHYn)./(ps.q_PHY_p_rdf ./ ps.q_PHY_n_rdf)]);
+        1 - (y.iPHYp ./ y.iPHYn)./(ps.q_PHY_p_rdf ./ ps.q_PHY_n_rdf)], [], 2);
     
     excr_PHY_p_act = 0.5 .* 0.25 .* y.iPHYp .* max([0,...
-        1 - (y.iPHYn ./ y.iPHYp)./(ps.q_PHY_n_rdf ./ ps.q_PHY_p_rdf)]);
+        1 - (y.iPHYn ./ y.iPHYp)./(ps.q_PHY_n_rdf ./ ps.q_PHY_p_rdf)], [], 2);
     
 else
     excr_PHY_n_act = 0;

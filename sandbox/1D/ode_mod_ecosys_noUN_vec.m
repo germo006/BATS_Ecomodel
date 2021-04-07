@@ -16,7 +16,7 @@ end
 % input vector and transform it into a matrix for easy indexing. 
 y_vals = reshape(y_vals, length(y_vals)/length(z), length(z));
 % Convenient vectors of ones and zeros.
-v1 = ones(length(z), 1);
+v1 = ones(1,length(z));
 v0 = zeros(size(v1));
 %%-----------------------------------------------------------------------
 %      Temperature Effects and PAR
@@ -26,13 +26,13 @@ v0 = zeros(size(v1));
 % and only PAR0 is subject to the constraints of data from BATS.
 [forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig);
 % Calculate the temperature effects on microbial growth.
-tfun = @(T) exp(-po_vals(73).*((1/(T+273.15))-(1/(25+273.15))));
+tfun = @(T) exp(-po_vals(73).*((1./(T+273.15))-(1/(25+273.15))));
 % Calculate PAR at the given depth based on attenuation by water and Chl.
-PAR = PAR0.*exp(-z.*(0.038 + 0.05.*(mean(y_vals(15,:) + y_vals(4,:)))));
+PAR = (PAR0.*exp(-z.*(0.038 + 0.05.*(mean(y_vals(15,:) + y_vals(4,:)))))).';
 % Calculate vertical eddy diffusivity based on an exponential relationship
 % from the MLD.
 Kzfun = @(z, MLD) 1.1e-4.*24*3600*exp(-0.01.*(z - MLD));
-Kz = Kzfun(z, MLD);
+Kz = Kzfun(z, MLD).';
 %%-----------------------------------------------------------------------
 %      Phytoplankton Processes
 %-----------------------------------------------------------------------
@@ -40,16 +40,16 @@ Kz = Kzfun(z, MLD);
 % Determining growth rate limits
 Nfunc_phy_n = ((y_vals(14,:)./y_vals(16,:))-ps_vals(14))./(ps_vals(12) - ps_vals(14));
 Nfunc_phy_p = ((y_vals(13,:)./y_vals(16,:))-ps_vals(11))./(ps_vals(9) - ps_vals(11));
-temp = max([min([Nfunc_phy_n', Nfunc_phy_p', v1],[], 2),v0],[], 2); % Force elemental limits
+temp = max([min([Nfunc_phy_n; Nfunc_phy_p; v1],[], 1);v0],[], 1); % Force elemental limits
 % on rate to between 0 and 100%
 Pmax_phy = po_vals(36) .* tfun(T) .* temp; % Max specific growth rate.
 % Light limitation and specific gross PP (as carbon)
-growPHYc = nanmax(v0,y_vals(16,:) .* Pmax_phy .*...
+growPHYc = nanmax([v0;y_vals(16,:) .* Pmax_phy .*...
     (1 - exp(-po_vals(71) .* (y_vals(15,:)./y_vals(16,:)) .* PAR ./ Pmax_phy)) .*...
-    exp(-po_vals(68) .* PAR));
+    exp(-po_vals(68) .* PAR)], [], 1);
 % Nitrogen assimilation
 Vmax_phy_n = (ps_vals(13) - (y_vals(14,:)./y_vals(16,:)))./(ps_vals(13) - ps_vals(12));
-temp = max([min([Vmax_phy_n',v1],[], 2),v0],[], 2); % Yet again forcing this.
+temp = max([min([Vmax_phy_n;v1],[], 1);v0],[], 1); % Yet again forcing this.
 growPHYnh4 = y_vals(16,:) .* po_vals(6) .* tfun(T) .* temp .* ...
     y_vals(18,:) ./ (y_vals(18,:) + po_vals(44) + (y_vals(17,:).*po_vals(44)./po_vals(43)));
 growPHYno3 = y_vals(16,:) .* po_vals(6) .* tfun(T) .* temp .* ...
@@ -57,7 +57,7 @@ growPHYno3 = y_vals(16,:) .* po_vals(6) .* tfun(T) .* temp .* ...
 growPHYn = growPHYnh4 + growPHYno3; % Total growth on nitrogen limit.
 % Phosphorus limitation.
 Vmax_phy_p = (ps_vals(10) - (y_vals(13,:)./y_vals(16,:)))./(ps_vals(10) - ps_vals(9));
-temp = max([min([Vmax_phy_p',v1],[], 2),v0],[], 2); % Yet again forcing this.
+temp = max([min([Vmax_phy_p;v1],[], 1);v0],[], 1); % Yet again forcing this.
 % Assuming inorganic P is the limiter and supply, here's the max growth.
 growPHYpo4 = y_vals(16,:) .* po_vals(5) .* tfun(T) .* temp .* ...
     y_vals(12,:) ./ (y_vals(12,:) + po_vals(42));
@@ -65,8 +65,8 @@ growPHYpo4 = y_vals(16,:) .* po_vals(5) .* tfun(T) .* temp .* ...
 % evaluate the respiration necessary for this.
 respPHY = po_vals(1) .* growPHYno3;
 % Chlorophyll Production
-growPHYchl = nanmax([v0,po_vals(7) .* growPHYn .* growPHYc ./ ...
-    (po_vals(71) .* y_vals(15,:) .* PAR .* exp(-po_vals(68) .* PAR))], [], 2);
+growPHYchl = nanmax([v0;po_vals(7) .* growPHYn .* growPHYc ./ ...
+    (po_vals(71) .* y_vals(15,:) .* PAR .* exp(-po_vals(68) .* PAR))], [], 1);
 % DOM excretion!
 % Passive (fixed proportion)
 excr_PHY_c_psv = po_vals(63) .* y_vals(16,:);
@@ -75,15 +75,15 @@ excr_PHY_p_psv = po_vals(63) .* y_vals(13,:);
 % Active carbohydrate excretion
 excr_PHY_c_cho = po_vals(64) .* growPHYc;
 % Active excretion to adjust stoichiometry.
-excr_PHY_c_act = 0.5 .* y_vals(16,:) .* max([v0,...
-    1-(y_vals(14,:)./(y_vals(16,:) .* ps_vals(12)))',...
-    1-(y_vals(13,:)./(y_vals(16,:) .* ps_vals(9)))'], [], 2);
+excr_PHY_c_act = (0.5 .* y_vals(16,:) .* max([v0;...
+    1-(y_vals(14,:)./(y_vals(16,:) .* ps_vals(12)));...
+    1-(y_vals(13,:)./(y_vals(16,:) .* ps_vals(9)))], [], 1));
 
 condC = (excr_PHY_c_act > 0);
-excr_PHY_n_act(condC) = 0.5 .* 0.25 .* y_vals(14,condC) .* max([0,...
-    1 - (y_vals(13,condC) ./ y_vals(14,condC))./(ps_vals(9) ./ ps_vals(12))]);
-excr_PHY_p_act(condC) = 0.5 .* 0.25 .* y_vals(13,condC) .* max([0,...
-    1 - (y_vals(14,condC) ./ y_vals(13,condC))./(ps_vals(12) ./ ps_vals(9))]);
+excr_PHY_n_act(condC) = 0.5 .* 0.25 .* y_vals(14,condC) .* max([zeros(size(y_vals(14,condC)));...
+    1 - (y_vals(13,condC) ./ y_vals(14,condC))./(ps_vals(9) ./ ps_vals(12))], [], 1);
+excr_PHY_p_act(condC) = 0.5 .* 0.25 .* y_vals(13,condC) .* max([zeros(size(y_vals(13,condC)));...
+    1 - (y_vals(14,condC) ./ y_vals(13,condC))./(ps_vals(12) ./ ps_vals(9))], [], 1);
 excr_PHY_n_act(~condC) = 0;
 excr_PHY_p_act(~condC) = 0;
 
@@ -110,48 +110,44 @@ graz_PHY_chl = (y_vals(15,:)./y_vals(16,:)) .* graz_PHY_c;
 dydtt(16,:) = growPHYc - respPHY - excr_PHY_LDOC - excr_PHY_SDOC - POM_PHY_c - graz_PHY_c;
 dydtt(14,:) = growPHYn           - excr_PHY_LDON - excr_PHY_SDON - POM_PHY_n - graz_PHY_n;
 dydtt(13,:) = growPHYpo4           - excr_PHY_LDOP - excr_PHY_SDOP - POM_PHY_p - graz_PHY_p;
-dydtt(15,:) = growPHYchl                                           - POM_PHY_chl - graz_PHY_chl;
+dydtt(15,:) = growPHYchl                                          - POM_PHY_chl - graz_PHY_chl;
 %%-----------------------------------------------------------------------
 %      Trichdesmium Processes
 %-----------------------------------------------------------------------
 % The ol' nutrient limitation thing.
 Nfunc_TR_n = ((y_vals(3,:)./y_vals(5,:))-ps_vals(6))./(ps_vals(4) - ps_vals(6));
 Nfunc_TR_p = ((y_vals(2,:)./y_vals(5,:))-ps_vals(3))./(ps_vals(1) - ps_vals(3));
-temp = max([min([Nfunc_TR_n, Nfunc_TR_p, v1],[], 2),v0],[], 2);
+temp = max([min([Nfunc_TR_n; Nfunc_TR_p; v1],[], 1);v0],[], 1);
 Pmax_TR = po_vals(34) .* tfun(T) .* temp; % Max specific growth rate.
 % Light limitation and specific gross PP (as carbon)
-if Pmax_TR == 0
-    growTRc = 0;
-else
-    growTRc = y_vals(5,:) .* Pmax_TR .*...
-        (1 - exp(-po_vals(70) .* (y_vals(4,:)./y_vals(5,:)) .* PAR ./ Pmax_TR)) .*...
-        exp(-po_vals(67) .* PAR);
-end
+Pmaxcond = (Pmax_TR == 0);
+growTRc(Pmaxcond) = 0;
+growTRc(~Pmaxcond) = y_vals(5,~Pmaxcond) .* Pmax_TR(~Pmaxcond) .*...
+    (1 - exp(-po_vals(70) .* (y_vals(4,~Pmaxcond)./y_vals(5,~Pmaxcond)) .* PAR(~Pmaxcond) ./ Pmax_TR(~Pmaxcond))) .*...
+    exp(-po_vals(67) .* PAR(~Pmaxcond));
 % N assimilation, including fixation.
 Vmax_TR_n = (ps_vals(5) - (y_vals(3,:)./y_vals(5,:)))./(ps_vals(5) - ps_vals(4));
-temp = max([min([Vmax_TR_n,v1],[], 2),v0],[], 2); % Yet again forcing this.
+temp = max([min([Vmax_TR_n;v1],[], 1);v0],[], 1); % Yet again forcing this.
 growTRnh4 = y_vals(5,:) .* po_vals(4) .* tfun(T) .* temp .* ...
     y_vals(18,:) ./ (y_vals(18,:) + po_vals(41) + (y_vals(17,:).*po_vals(41)./po_vals(40)));
 growTRno3 = y_vals(5,:) .* po_vals(4) .* tfun(T) .* temp .* ...
     y_vals(17,:) ./ (y_vals(17,:) + po_vals(40) + (y_vals(18,:).*po_vals(40)./po_vals(41)));
 % Fixation
-if T <= 20
-    nfixTRmax = 0;
-else
-    nfixTRmax = tfun(T) .* Vmax_TR_n .* ...
-        (((growTRc - (po_vals(1).*growTRno3)) .* ps_vals(5)) - ...
-        growTRno3 - growTRnh4)./...
-        (1 + (po_vals(2) .* ps_vals(5)));
-    nfixTRmax = max([v0, nfixTRmax]);
-end
+condT = (T <= 20);
+nfixTRmax(condT) = 0;
+nfixTRmax(~condT) = max([v0(~condT); tfun(T) .* Vmax_TR_n(~condT) .* ...
+    (((growTRc(~condT) - (po_vals(1).*growTRno3(~condT))) .* ps_vals(5)) - ...
+    growTRno3(~condT) - growTRnh4(~condT))./...
+    (1 + (po_vals(2) .* ps_vals(5)))], [], 1);
+
 % total assimilation of N
-growTRn = min([y_vals(5,:) .* po_vals(4) .* tfun(T) .* Vmax_TR_n,...
-    growTRnh4 + growTRno3 + nfixTRmax],[], 2);
+growTRn = min([y_vals(5,:) .* po_vals(4) .* tfun(T) .* Vmax_TR_n;...
+    growTRnh4 + growTRno3 + nfixTRmax],[], 1);
 % Actual (not max) fixation rate
 growTRnfix = growTRn - growTRnh4 - growTRno3;
 % Phosphorus assimilation
 Vmax_TR_p = (ps_vals(2) - (y_vals(2,:)./y_vals(5,:)))./(ps_vals(2) - ps_vals(1));
-temp = max([min([Vmax_TR_p,v1],[], 2),v0],[], 2); % Yet again forcing this.
+temp = max([min([Vmax_TR_p;v1],[], 1);v0],[], 1); % Yet again forcing this.
 % Assuming inorganic P is the limiter and supply, here's the max growth.
 growTRpo4 = y_vals(5,:) .* po_vals(3) .* tfun(T) .* temp .* ...
     y_vals(12,:) ./ (y_vals(12,:) + po_vals(39));
@@ -167,10 +163,9 @@ respTR = (po_vals(1) .* growTRno3) + (po_vals(2) .* growTRnfix);
 % Chlorophyll Production
 condPAR = (PAR ==0);
 growTRchl(condPAR) = 0;
-growTRchl(~condPAR) = po_vals(7) .* growTRn .* growTRc ./ ...
-    (po_vals(70) .* y_vals(4,:) .* PAR .* exp(-po_vals(67) .* PAR));
+growTRchl(~condPAR) = po_vals(7) .* growTRn(~condPAR) .* growTRc(~condPAR) ./ ...
+    (po_vals(70) .* y_vals(4,~condPAR) .* PAR(~condPAR) .* exp(-po_vals(67) .* PAR(~condPAR)));
 growTRchl(isnan(growTRchl)) = 0;
-growTRchl = growTRchl';
 % DOM excretion!
 % Passive (fixed proportion)
 excr_TR_c_psv = po_vals(58) .* y_vals(5,:);
@@ -179,20 +174,18 @@ excr_TR_p_psv = po_vals(58) .* y_vals(2,:);
 % Active carbohydrate excretion
 excr_TR_c_cho = po_vals(60) .* growTRc;
 % Active excretion to adjust stoichiometry.
-excr_TR_c_act = 0.5 .* y_vals(5,:) .* max([v0,...
-    1-(y_vals(3,:)./(y_vals(5,:) .* ps_vals(4))),...
-    1-(y_vals(2,:)./(y_vals(5,:) .* ps_vals(1)))], [], 2);
-if excr_TR_c_act > 0
-    excr_TR_n_act = 0.5 .* 0.25 .* y_vals(3,:) .* max([0,...
-        1 - (y_vals(2,:) ./ y_vals(3,:))./(ps_vals(1) ./ ps_vals(4))]);
-    
-    excr_TR_p_act = 0.5 .* 0.25 .* y_vals(2,:) .* max([0,...
-        1 - (y_vals(3,:) ./ y_vals(2,:))./(ps_vals(4) ./ ps_vals(1))]);
-    
-else
-    excr_TR_n_act = 0;
-    excr_TR_p_act = 0;
-end
+excr_TR_c_act = 0.5 .* y_vals(5,:) .* max([v0;...
+    1-(y_vals(3,:)./(y_vals(5,:) .* ps_vals(4)));...
+    1-(y_vals(2,:)./(y_vals(5,:) .* ps_vals(1)))], [], 1);
+
+condC = (excr_TR_c_act > 0);
+excr_TR_n_act(condC) = 0.5 .* 0.25 .* y_vals(3,condC) .* max([v0(condC);...
+    1 - (y_vals(2,condC) ./ y_vals(3,condC))./(ps_vals(1) ./ ps_vals(4))], [], 1);
+excr_TR_p_act(condC) = 0.5 .* 0.25 .* y_vals(2,condC) .* max([v0(condC);...
+    1 - (y_vals(3,condC) ./ y_vals(2,condC))./(ps_vals(4) ./ ps_vals(1))], [], 1);
+excr_TR_n_act(~condC) = 0;
+excr_TR_p_act(~condC) = 0;
+
 % Active release of newly fixed N
 excr_TR_nfix_DON = 0.5 .* po_vals(59) .* growTRnfix .* Nfunc_TR_n;
 % Partitioning of labile and semilabile DOM
@@ -383,8 +376,8 @@ ASC = y_vals(8,:) .* po_vals(16);
 % Carbon Usage
 Nfunc_ba_n = y_vals(29,:)./(y_vals(30,:).*ps_vals(18)); %bacterial N/C quota /ref quota
 Nfunc_ba_p = y_vals(28,:)./(y_vals(30,:).*ps_vals(17));
-temp = min([Nfunc_ba_n, Nfunc_ba_p],[], 2);
-temp = min([temp, v1],[], 2); % Make sure the limit is unity (not the case for mtabs?)
+temp = min([Nfunc_ba_n; Nfunc_ba_p],[], 1);
+temp = min([temp; v1],[], 1); % Make sure the limit is unity (not the case for mtabs?)
 growBAldoc = po_vals(38) .* y_vals(30,:) .* tfun(T) .* temp .* ALC ./ (ALC+ po_vals(45) + ASC);
 growBAsdoc = po_vals(38) .* y_vals(30,:) .* tfun(T) .* temp .* ASC ./ (ASC+ po_vals(45) + ALC);
 %.^.^.^I added the tfun back into this version (it wasn't in the one H. Kim
@@ -392,20 +385,19 @@ growBAsdoc = po_vals(38) .* y_vals(30,:) .* tfun(T) .* temp .* ASC ./ (ASC+ po_v
 % DON and DOP usage
 growBAldon = growBAldoc.*y_vals(23,:)./y_vals(24,:); % available labile N
 growBAldop = growBAldoc.*y_vals(22,:)./y_vals(24,:); % available labile P
-growBAsdon = growBAsdoc .* min([ps_vals(18) *v1,...
-    y_vals(7,:)./y_vals(8,:) + po_vals(54)./Nfunc_ba_n.*(ps_vals(18)-(y_vals(7,:)./y_vals(8,:)))],[], 2);
-growBAsdop = growBAsdoc .* min([ps_vals(17) *v1,...
-    y_vals(6,:)./y_vals(8,:) + po_vals(54)./Nfunc_ba_p.*(ps_vals(17)-(y_vals(6,:)./y_vals(8,:)))],[], 2);
+growBAsdon = growBAsdoc .* min([ps_vals(18) *v1;...
+    y_vals(7,:)./y_vals(8,:) + po_vals(54)./Nfunc_ba_n.*(ps_vals(18)-(y_vals(7,:)./y_vals(8,:)))],[], 1);
+growBAsdop = growBAsdoc .* min([ps_vals(17) *v1;...
+    y_vals(6,:)./y_vals(8,:) + po_vals(54)./Nfunc_ba_p.*(ps_vals(17)-(y_vals(6,:)./y_vals(8,:)))],[], 1);
 % inorganic nutrients uptake
-growBAnh4 = (growBAldon .* y_vals(18,:) .* min([v1, 1./Nfunc_ba_n],[], 2))./ y_vals(23,:);
-if Nfunc_ba_n < 1
-    growBAno3 = min([0.1 .* ((growBAldon + growBAsdon) ./ (y_vals(23,:) + y_vals(7,:))) .* y_vals(17,:) .* min(v1, 1./Nfunc_ba_n),...
-        ((growBAldon + growBAsdon) ./ (y_vals(23,:) + y_vals(7,:))) .* (y_vals(17,:)  + y_vals(18,:)) - growBAnh4],[], 2);
-    growBAno3 = max([v0, growBAno3],[], 2);
-else
-    growBAno3 = 0;
-end
-growBApo4 = (growBAldop ./ y_vals(22,:)) .* y_vals(12,:) .* min([v1, 1./Nfunc_ba_p],[], 2);
+growBAnh4 = (growBAldon .* y_vals(18,:) .* min([v1; 1./Nfunc_ba_n],[], 1))./ y_vals(23,:);
+
+nutC = (Nfunc_ba_n < 1);
+growBAno3(nutC) = min([0.1 .* ((growBAldon(nutC) + growBAsdon(nutC)) ./ (y_vals(23,nutC) + y_vals(7,nutC)) .* y_vals(17,(nutC)) .* min([v1(nutC); 1./Nfunc_ba_n(nutC)], [], 1));...
+    ((growBAldon(nutC) + growBAsdon(nutC)) ./ (y_vals(23,nutC) + y_vals(7,nutC))) .* (y_vals(17,nutC)  + y_vals(18,nutC)) - growBAnh4(nutC)],[], 1);
+growBAno3(nutC) = max([v0(nutC); growBAno3(nutC)],[], 1);
+growBAno3(~nutC) = 0;
+growBApo4 = (growBAldop ./ y_vals(22,:)) .* y_vals(12,:) .* min([v1; 1./Nfunc_ba_p],[], 1);
 % Bacteria gross growth
 growBAc = growBAldoc + growBAsdoc;
 growBAn = growBAldon + growBAsdon + growBAnh4 + growBAno3;
@@ -438,11 +430,11 @@ excrBAn(condP) = po_vals(22) .* (y_vals(29,condP) - ((y_vals(28,condP)./ps_vals(
 excrBAp(condP) = 0;
 remiBAn(condP) = 0;
 remiBAp(condP) = 0;
-excrBAc = excrBAc';
-excrBAn = excrBAn'; 
-excrBAp = excrBAp';
-remiBAn = remiBAn';
-remiBAp = remiBAp';
+% excrBAc = excrBAc.';
+% excrBAn = excrBAn.'; 
+% excrBAp = excrBAp.';
+% remiBAn = remiBAn.';
+% remiBAp = remiBAp.';
 %6. removal by grazing
 grazBAc = po_vals(35) .* y_vals(11,:) .* y_vals(30,:).^2 ./...
     (y_vals(30,:).^2 + po_vals(49).^2 + ...%     (y.iUNc.*po_vals(49)./po.g_UN).^2) +
@@ -595,9 +587,9 @@ dydtt(12,:) = fluxBApo4 + remi_PRT_p + remi_MZ_p + remi_HZ_p -...
 %-----------------------------------------------------------------------
 % Conversion of SDOM to RDOM
 REFR_SDOC = po_vals(61) .* y_vals(8,:) .* ...
-    exp( 1 - min([(y_vals(7,:) ./ (y_vals(8,:).*po_vals(24))),...
-    (y_vals(6,:) ./ (y_vals(8,:).*po_vals(23)))],[], 2) ) + ...
-    max([ v0 , y_vals(8,:) - (y_vals(7,:)./po_vals(24)), y_vals(8,:) - (y_vals(6,:)./po_vals(23))],[], 2);
+    exp( 1 - min([(y_vals(7,:) ./ (y_vals(8,:).*po_vals(24)));...
+    (y_vals(6,:) ./ (y_vals(8,:).*po_vals(23)))],[], 1) ) + ...
+    max([ v0 ; y_vals(8,:) - (y_vals(7,:)./po_vals(24)); y_vals(8,:) - (y_vals(6,:)./po_vals(23))],[], 1);
 REFR_SDON = po_vals(24) .* REFR_SDOC;
 REFR_SDOP = po_vals(23) .* REFR_SDOC;
 % Change in DOM species

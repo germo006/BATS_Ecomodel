@@ -49,11 +49,11 @@ y_vals_rs = reshape(y_vals, 31*100, 1);
 % differential equations and pp, bp are the instantaneous rates rather than
 % the integrals.
 
-odefun = @(ts, y_vals) ode_mod_ecosys_noUN_vec(y_vals, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig);
+odefun = @(ts, y_vals_rs) ode_mod_ecosys_noUN_vec(y_vals_rs, ps_vals, po_vals, ts, z, concat3PAR, concat3PARsig);
 opts = odeset('RelTol' , 1e-6, 'MaxStep', 0.1);
-[to, yo] = ode45(odefun, [0:1/24:10]', y_vals, opts);
+[to, yo] = ode45(odefun, [0:1/24:10]', y_vals_rs, opts);
 
-yo = reshape(yo, length(y_vals)/length(z), length(z), length(to));
+yor = reshape(yo, length(to), length(z), size(y_vals,1));
 
 %%
 % tic
@@ -64,19 +64,21 @@ yo = reshape(yo, length(y_vals)/length(z), length(z), length(to));
 % x1 and x2 accordingly. 
 load('AlbumMaps.mat')
 
-x1 = 9900;
-x2 = 10000;
+x1 = 0;
+x2 = 10;
+zp = 0.5;
+resh = @(vec) reshape(vec, length(vec), []);
 
 subplot(3,1,1)
-plot(to, yo(:,24), 'LineWidth', 1.5, 'Color', CP1{4})
+plot(to, resh(yor(:,1,24)), 'LineWidth', 1.5, 'Color', CP1{4})
 ylabel('LDOC, mmol C m^{-3}')
 xlim([x1, x2])
 subplot(3,1,2)
-plot(to, yo(:,8), 'LineWidth', 1.5, 'Color', CP1{2})
+plot(to, resh(yor(:,1,8)), 'LineWidth', 1.5, 'Color', CP1{2})
 ylabel('SDOC, mmol C m^{-3}')
 xlim([x1, x2])
 subplot(3,1,3)
-plot(to, yo(:,27), 'LineWidth', 1.5, 'Color', CP1{1})
+plot(to, resh(yor(:,1,27)), 'LineWidth', 1.5, 'Color', CP1{1})
 ylabel('DetC, mmol C m^{-3}')
 xlabel('days')
 xlim([x1, x2])
@@ -84,39 +86,39 @@ xlim([x1, x2])
 
 figure
 subplot(3,1,1)
-plot(to, yo(:, 30), 'LineWidth', 1.5, 'Color', CP1{2})
+plot(to, resh(yor(:,1,30)), 'LineWidth', 1.5, 'Color', CP1{2})
 ylabel('BAc, mmol C m^{-3}')
 xlim([x1, x2])
 subplot(3,1,2)
-plot(to, yo(:, 16), 'LineWidth', 1.5, 'Color', CP1{4})
+plot(to, resh(yor(:,1,16)), 'LineWidth', 1.5, 'Color', CP1{4})
 ylabel('PHYc, mmol C m^{-3}')
 xlim([x1, x2])
 subplot(3,1,3)
-plot(to, yo(:, 11), 'LineWidth', 1.5, 'Color', CP1{1})
+plot(to, resh(yor(:,1,11)), 'LineWidth', 1.5, 'Color', CP1{1})
 ylabel('PRTc, mmol C m^{-3}')
 xlabel('days')
 xlim([x1, x2])
 
 figure
 subplot(5,1,1)
-plot(to, yo(:, 17), 'LineWidth', 1.5, 'Color', CP1{2})
+plot(to, resh(yor(:,1,17)), 'LineWidth', 1.5, 'Color', CP1{2})
 ylabel('NO_3^-, mmol m^{-3}')
 xlim([x1, x2])
 subplot(5,1,2)
-plot(to, yo(:, 12), 'LineWidth', 1.5, 'Color', CP1{4})
+plot(to, resh(yor(:,1,12)), 'LineWidth', 1.5, 'Color', CP1{4})
 ylabel('PO_4^{-3}, mmol m^{-3}')
 xlim([x1, x2])
 subplot(5,1,3)
-plot(to, yo(:, 4)+yo(:, 15), 'LineWidth', 1.5, 'Color', CP1{1})
+plot(to, resh(yor(:,1,4)+yor(:,1,15)), 'LineWidth', 1.5, 'Color', CP1{1})
 ylabel('Chl_{a}, mg m^{-3}')
 xlabel('days')
 xlim([x1, x2])
-subplot(5,1,4)
-plot(to, ppo, 'LineWidth', 1.5, 'Color', CP1{3})
-ylabel('Primary Prod., mmolC m^{-3} d^{-1}')
-xlim([x1, x2])
-subplot(5,1,5)
-plot(to, bpo, 'LineWidth', 1.5, 'Color', CP1{5})
-ylabel('Bact Prod., mmolC m^{-3} d^{-1}')
-xlabel('days')
-xlim([x1, x2])
+% subplot(5,1,4)
+% plot(to, ppo, 'LineWidth', 1.5, 'Color', CP1{3})
+% ylabel('Primary Prod., mmolC m^{-3} d^{-1}')
+% xlim([x1, x2])
+% subplot(5,1,5)
+% plot(to, bpo, 'LineWidth', 1.5, 'Color', CP1{5})
+% ylabel('Bact Prod., mmolC m^{-3} d^{-1}')
+% xlabel('days')
+% xlim([x1, x2])
