@@ -61,7 +61,7 @@ po.pom_TR = 0.1;
 % BA
 
 po.k_DOM = 0.5500; %*
-po.r_SDOM = 0.087; %* 0.0087 Adjusted NPG 15 Mar 2021 to get less SDOMc.
+po.r_SDOM = 0.1; %* 0.0087 Adjusted NPG 15 Mar 2021 to get less SDOMc.
 po.mu_BA = 2.3; %*
 po.BAresp_B = 0.15;
 po.r_BAresp_min = 0.35;

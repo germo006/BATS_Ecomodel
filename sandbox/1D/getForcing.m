@@ -1,7 +1,7 @@
 %% Noah Germolus 12 Mar 2021
 % This is a script that pulls forcing values for the ode_mod functions.
 
-function [forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(t, concat3PAR, concat3PARsig)
+function [forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(t, concat3PAR, concat3PARsig, z)
 
 % NUTRIENTS
 % These are average nutrient concentrations at the base of the mixed layer
@@ -12,7 +12,7 @@ forcePO4 = 0.671;
 
 % TEMPERATURE
 % Only letting this vary by a single degree-ish
-T = 21 + randn(1);
+T = (21)*ones(1,length(z)) - ([length(z):-1:1].^(-1));
 
 % MIXED LAYER DEPTH
 % I have simplified this almost as much as I did the mixing equations that

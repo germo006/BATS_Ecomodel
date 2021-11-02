@@ -24,7 +24,7 @@ v0 = zeros(size(v1));
 % Retrieve forcings: temperature, mixed-layer depth, surface PAR, nutrient
 % boundary conditions. Right now T and PAR0 are the only nonstatic drivers,
 % and only PAR0 is subject to the constraints of data from BATS.
-[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig);
+[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig, z);
 % Calculate the temperature effects on microbial growth.
 tfun = @(T) exp(-po_vals(73).*((1./(T+273.15))-(1/(25+273.15))));
 % Calculate PAR at the given depth based on attenuation by water and Chl.
@@ -474,16 +474,16 @@ excr_PRT_SDOP = po_vals(62) .* (1 - po_vals(50)) .* growPRTp .* (y_vals(9,:)./(y
 % Respiration
 resp_PRT = (po_vals(8) .* tfun(T) .* y_vals(11,:)) + (po_vals(10) .* growPRTc);
 % SDOM release to adjust stoichiometry
-excr2_PRT_SDOC = po_vals(56) .* y_vals(11,:) .* max([v0,...
-    1 - (y_vals(10,:)./(y_vals(11,:).*ps_vals(8))),...
-    1 - (y_vals(9,:)./(y_vals(11,:).*ps_vals(7)))], [], 2);
+excr2_PRT_SDOC = po_vals(56) .* y_vals(11,:) .* max([v0;...
+    1 - (y_vals(10,:)./(y_vals(11,:).*ps_vals(8)));...
+    1 - (y_vals(9,:)./(y_vals(11,:).*ps_vals(7)))], [], 1);
 excr2_PRT_SDON = 0.5 .* excr2_PRT_SDOC .* (y_vals(10,:)./y_vals(11,:));
 excr2_PRT_SDOP = 0.5 .* excr2_PRT_SDOC .* (y_vals(9,:)./y_vals(11,:));
 % Inorganic nutrient remin to adjust stoichiometry.
-remi_PRT_n = po_vals(13) .* max([v0, y_vals(10,:) - (ps_vals(8) .* y_vals(11,:)),...
-    y_vals(10,:) - (ps_vals(8) .* y_vals(9,:) ./ ps_vals(7))], [], 2);
-remi_PRT_p = po_vals(13) .* max([v0, y_vals(9,:) - (ps_vals(7) .* y_vals(11,:)),...
-    y_vals(9,:) - (ps_vals(7) .* y_vals(10,:) ./ ps_vals(8))], [], 2);
+remi_PRT_n = po_vals(13) .* max([v0; y_vals(10,:) - (ps_vals(8) .* y_vals(11,:));...
+    y_vals(10,:) - (ps_vals(8) .* y_vals(9,:) ./ ps_vals(7))], [], 1);
+remi_PRT_p = po_vals(13) .* max([v0; y_vals(9,:) - (ps_vals(7) .* y_vals(11,:));...
+    y_vals(9,:) - (ps_vals(7) .* y_vals(10,:) ./ ps_vals(8))], [], 1);
 % POM production
 POM_PRT_c = po_vals(30) .* growPRTc;
 POM_PRT_n = po_vals(26) .* POM_PRT_c;
@@ -576,54 +576,58 @@ NTRF = po_vals(15) .* y_vals(18,:);
 dydtt(18,:) = fluxBAnh4 + remi_PRT_n + remi_MZ_n + remi_HZ_n + ...
     excr_TR_n_nh4  -... + excr_UN_n_nh4
     growPHYnh4 - growTRnh4  - NTRF +... %- growUNnh4
-    Kz.*(forceNH4 - y_vals(18,:));
+    Kz.*(diff([y_vals(18,:),forceNH4]));
 dydtt(17,:) = fluxBAno3 - growPHYno3 - growTRno3 + NTRF +...; % - growUNno3
-    Kz.*(forceNO3 - y_vals(17,:));
+    Kz.*(diff([y_vals(17,:),forceNO3]));
 dydtt(12,:) = fluxBApo4 + remi_PRT_p + remi_MZ_p + remi_HZ_p -...
     growPHYpo4 - growTRpo4 +...; % - growUNp
-    Kz.*(forcePO4 - y_vals(12,:));
+    Kz.*(diff([y_vals(12,:),forcePO4]));
 %%-----------------------------------------------------------------------
 %      Change in Dissolved Organic Matter
 %-----------------------------------------------------------------------
 % Conversion of SDOM to RDOM
 REFR_SDOC = po_vals(61) .* y_vals(8,:) .* ...
-    exp( 1 - min([(y_vals(7,:) ./ (y_vals(8,:).*po_vals(24)));...
+    exp( 1 - nanmin([(y_vals(7,:) ./ (y_vals(8,:).*po_vals(24)));...
     (y_vals(6,:) ./ (y_vals(8,:).*po_vals(23)))],[], 1) ) + ...
-    max([ v0 ; y_vals(8,:) - (y_vals(7,:)./po_vals(24)); y_vals(8,:) - (y_vals(6,:)./po_vals(23))],[], 1);
+    nanmax([ v0 ; y_vals(8,:) - (y_vals(7,:)./po_vals(24)); y_vals(8,:) - (y_vals(6,:)./po_vals(23))],[], 1);
 REFR_SDON = po_vals(24) .* REFR_SDOC;
 REFR_SDOP = po_vals(23) .* REFR_SDOC;
 % Change in DOM species
 dydtt(24,:) = excr_PHY_LDOC + excr_TR_LDOC + excr_PRT_LDOC + ... + excr_UN_LDOC
-    excr_MZ_LDOC + mortBAc - growBAldoc;
+    excr_MZ_LDOC + mortBAc - growBAldoc + Kz.*(diff([y_vals(24,:),y_vals(24,end)/2]));
 dydtt(23,:) = excr_PHY_LDON + excr_TR_LDON + excr_PRT_LDON + ... + excr_UN_LDON
-    excr_MZ_LDON + mortBAn - growBAldon;
+    excr_MZ_LDON + mortBAn - growBAldon + Kz.*(diff([y_vals(23,:),y_vals(23,end)/2]));
 dydtt(22,:) = excr_PHY_LDOP + excr_TR_LDOP + excr_PRT_LDOP + ... + excr_UN_LDOP
-    excr_MZ_LDOP + mortBAp - growBAldop;
+    excr_MZ_LDOP + mortBAp - growBAldop + Kz.*(diff([y_vals(22,:),y_vals(22,end)/2]));
 dydtt(8,:) = excr_PHY_SDOC + excr_TR_SDOC + excrBAc +... + excr_UN_SDOC
     excr_PRT_SDOC + excr2_PRT_SDOC + excr_MZ_SDOC + excr2_MZ_SDOC +...
-    excr_HZ_SDOC + DISS_DET_c - REFR_SDOC - growBAsdoc;
+    excr_HZ_SDOC + DISS_DET_c - REFR_SDOC - growBAsdoc + Kz.*(diff([y_vals(8,:),y_vals(8,end)/2]));
 dydtt(7,:) = excr_PHY_SDON + excr_TR_SDON + excrBAn +... + excr_UN_SDON
     excr_PRT_SDON + excr2_PRT_SDON + excr_MZ_SDON + excr2_MZ_SDON +...
-    excr_HZ_SDON + DISS_DET_n - REFR_SDON - growBAsdon;
+    excr_HZ_SDON + DISS_DET_n - REFR_SDON - growBAsdon + Kz.*(diff([y_vals(7,:),y_vals(7,end)/2]));
 dydtt(6,:) = excr_PHY_SDOP + excr_TR_SDOP + excrBAp +... + excr_UN_SDOP
     excr_PRT_SDOP + excr2_PRT_SDOP + excr_MZ_SDOP + excr2_MZ_SDOP +...
-    excr_HZ_SDOP + DISS_DET_p - REFR_SDOP - growBAsdop;
+    excr_HZ_SDOP + DISS_DET_p - REFR_SDOP - growBAsdop + Kz.*(diff([y_vals(6,:),y_vals(6,end)/2]));
 %%-----------------------------------------------------------------------
 %      Diagnostic Variables
 %-----------------------------------------------------------------------
-diaginput = [growPHYc, growTRc, -respPHY, -respTR, -excr_PHY_LDOC,...
-    -excr_TR_LDOC, -excr_PHY_SDOC, -excr_TR_SDOC, growBAc, -respBA];
+diaginput = [growPHYc; growTRc; -respPHY; -respTR; -excr_PHY_LDOC;...
+    -excr_TR_LDOC; -excr_PHY_SDOC; -excr_TR_SDOC; growBAc; -respBA];
+if sum(sum(isinf(y_vals)))~=0
+    disp('Line ' + string(find(sum(isinf(y_vals),2))) + ' is inf')
+    return
+end
 % Pull out the "diagnostic variables" primary production
 % and bacterial production from the results of an ODE solve of the model.
 %   
-dydtt(1,:) = sum(diaginput(:,1:8),2);
-dydtt(31,:) = sum(diaginput(:,9:10),2);
+dydtt(1,:) = sum(diaginput(1:8,:),1);
+dydtt(31,:) = sum(diaginput(9:10,:),1);
 dydtt = reshape(dydtt, 31*100, 1);
 %dydtt = dydtt';
-% if sum(isnan(dydtt))~=0
-%     disp('NaN at ' + string(find(isnan(dydtt))) +...
-%         ', time ' +string(ts)+' days.')
-%     dydtt(isnan(dydtt))=0;
-%     return
-% end
+if sum(isnan(dydtt))~=0
+    disp('NaN at ' + string(find(isnan(dydtt))) +...
+        ', time ' +string(ts)+' days.')
+    dydtt(isnan(dydtt))=0;
+    return
+end
 end

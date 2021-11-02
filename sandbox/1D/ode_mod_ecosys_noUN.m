@@ -29,10 +29,10 @@ v0 = zeros(size(v1));
 % Retrieve forcings: temperature, mixed-layer depth, surface PAR, nutrient
 % boundary conditions. Right now T and PAR0 are the only nonstatic drivers,
 % and only PAR0 is subject to the constraints of data from BATS.
-[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig);
+[forceNH4, forceNO3, forcePO4, T, MLD, PAR0] = getForcing(ts, concat3PAR, concat3PARsig,z);
 
 % Calculate the temperature effects on microbial growth.
-tfun = @(T) exp(-po.AE.*((1/(T+273.15))-(1/(25+273.15))));
+tfun = @(T) exp(-po.AE.*((1./(T+273.15))-(1/(25+273.15))));
 
 % Calculate PAR at the given depth based on attenuation by water and Chl.
 PAR = PAR0.*exp(-z.*(0.038 + 0.05.*(mean(y.iPHYchl + y.iTRchl))));
@@ -51,7 +51,7 @@ Kz = Kzfun(z, MLD);
 Nfunc_phy_n = ((y.iPHYn./y.iPHYc)-ps.q_PHY_n)./(ps.q_PHY_n_rdf - ps.q_PHY_n);
 Nfunc_phy_p = ((y.iPHYp./y.iPHYc)-ps.q_PHY_p)./(ps.q_PHY_p_rdf - ps.q_PHY_p);
 
-temp = max([min([Nfunc_phy_n, Nfunc_phy_p, v1],[], 2),v0],[], 2); % Force elemental limits
+temp = max([min([Nfunc_phy_n, Nfunc_phy_p, v1],[], 2),v0],[], 2)'; % Force elemental limits
 % on rate to between 0 and 100%
 
 Pmax_phy = po.mu_PHY .* tfun(T) .* temp; % Max specific growth rate.
@@ -204,7 +204,7 @@ end
 
 % total assimilation of N
 
-growTRn = min([y.iTRc .* po.vref_TR_n .* tfun(T) .* Vmax_TR_n,...
+growTRn = min([y.iTRc.' .* po.vref_TR_n .* tfun(T) .* Vmax_TR_n.',...
     growTRnh4 + growTRno3 + nfixTRmax],[], 2);
 
 % Actual (not max) fixation rate
